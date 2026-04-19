@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -45,7 +45,7 @@ def _record(code: BuildCode, count: int) -> BuildRecord:
     )
     return BuildRecord(
         build_code=code,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         parts=parts,
     )
 
@@ -102,7 +102,7 @@ def test_list_recent_ordered(tmp_path: Path) -> None:
             repo.insert(_record(c, 1))
     with s.begin():
         rows = repo.list_recent(limit=10)
-        assert [r.build_code for r in rows][0] == "B#0003"
+        assert next(r.build_code for r in rows) == "B#0003"
 
 
 def test_parts_repo_lookup(tmp_path: Path) -> None:
