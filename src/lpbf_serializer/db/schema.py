@@ -46,6 +46,13 @@ class BuildRow(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     mtt_path: Mapped[str | None] = mapped_column(Text, nullable=True)
     mtt_sha256: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    source_build_file_path: Mapped[str | None] = mapped_column(Text, nullable=True)
+    source_build_file_sha256: Mapped[str | None] = mapped_column(
+        String(64), nullable=True
+    )
+    source_build_file_format: Mapped[str | None] = mapped_column(
+        String(16), nullable=True
+    )
     notes: Mapped[str] = mapped_column(Text, nullable=False, default="")
 
     parts: Mapped[list[PartRow]] = relationship(
@@ -69,10 +76,11 @@ class PartRow(Base):
     )
     part_number: Mapped[int] = mapped_column(Integer, nullable=False)
     serial_id: Mapped[str] = mapped_column(String(64), nullable=False)
-    pos_x: Mapped[float] = mapped_column(Float, nullable=False)
-    pos_y: Mapped[float] = mapped_column(Float, nullable=False)
-    stl_path: Mapped[str] = mapped_column(Text, nullable=False)
-    mesh_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    part_name: Mapped[str | None] = mapped_column(Text, nullable=True)
+    pos_x: Mapped[float | None] = mapped_column(Float, nullable=True)
+    pos_y: Mapped[float | None] = mapped_column(Float, nullable=True)
+    stl_path: Mapped[str | None] = mapped_column(Text, nullable=True)
+    mesh_sha256: Mapped[str | None] = mapped_column(String(64), nullable=True)
     qa_status: Mapped[str] = mapped_column(String(16), nullable=False, default="pending")
 
     build: Mapped[BuildRow] = relationship(back_populates="parts")

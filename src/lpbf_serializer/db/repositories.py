@@ -43,6 +43,17 @@ class BuildRepository:
             created_at=record.created_at,
             mtt_path=str(record.mtt_path) if record.mtt_path is not None else None,
             mtt_sha256=record.mtt_sha256,
+            source_build_file_path=(
+                str(record.source_build_file_path)
+                if record.source_build_file_path is not None
+                else None
+            ),
+            source_build_file_sha256=record.source_build_file_sha256,
+            source_build_file_format=(
+                record.source_build_file_format.value
+                if record.source_build_file_format is not None
+                else None
+            ),
             notes=record.notes,
         )
         row.parts = [self._part_row(p) for p in record.parts]
@@ -76,9 +87,12 @@ class BuildRepository:
         return PartRow(
             part_number=p.part_number,
             serial_id=str(p.serial),
-            pos_x=p.position.x_mm,
-            pos_y=p.position.y_mm,
-            stl_path=str(p.source_stl_path),
+            part_name=p.part_name,
+            pos_x=p.position.x_mm if p.position is not None else None,
+            pos_y=p.position.y_mm if p.position is not None else None,
+            stl_path=(
+                str(p.source_stl_path) if p.source_stl_path is not None else None
+            ),
             mesh_sha256=p.mesh_sha256,
             qa_status=p.qa_status.value,
         )

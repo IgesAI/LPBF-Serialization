@@ -58,10 +58,22 @@ def generate_build_report(
     styles = getSampleStyleSheet()
     elements: list[Flowable] = []
 
+    is_sidecar = row.source_build_file_path is not None
+
     elements.append(Paragraph(f"Build {row.build_code}", styles["Title"]))
+    mode_line = "Mode: sidecar (external build file)" if is_sidecar else "Mode: drag-place"
+    src_line = ""
+    if is_sidecar:
+        src_line = (
+            f"Source: {row.source_build_file_format} "
+            f"<font size='8'>{row.source_build_file_path}</font><br/>"
+            f"Source SHA-256: <font size='8'>{row.source_build_file_sha256}</font><br/>"
+        )
     elements.append(
         Paragraph(
+            f"{mode_line}<br/>"
             f"Created: {row.created_at.isoformat(timespec='seconds')}<br/>"
+            f"{src_line}"
             f"MTT: {row.mtt_path or '(not exported)'}<br/>"
             f"MTT SHA-256: {row.mtt_sha256 or '(n/a)'}<br/>"
             f"Parts: {len(row.parts)}",
@@ -71,21 +83,43 @@ def generate_build_report(
     elements.append(Spacer(1, 8 * mm))
 
     elements.append(Paragraph("Parts", styles["Heading2"]))
-    table_data: list[list[str]] = [
-        ["#", "Serial", "X (mm)", "Y (mm)", "STL", "Mesh SHA-256 (prefix)", "QA"]
-    ]
-    for p in sorted(row.parts, key=lambda r: r.part_number):
-        table_data.append(
-            [
-                str(p.part_number),
-                p.serial_id,
-                f"{p.pos_x:.2f}",
-                f"{p.pos_y:.2f}",
-                Path(p.stl_path).name,
-                p.mesh_sha256[:12] + "...",
-                p.qa_status,
-            ]
-        )
+    if is_sidecar:
+        table_data: list[list[str]] = [["#", "Serial", "Part name", "QA"]]
+        for p in sorted(row.parts, key=lambda r: r.part_number):
+            table_data.append(
+                [
+                    str(p.part_number),
+                    p.serial_id,
+                    p.part_name or "(unnamed)",
+                    p.qa_status,
+                ]
+            )
+    else:
+        table_data = [
+            ["#", "Serial", "X (mm)", "Y (mm)", "STL", "Mesh SHA-256 (prefix)", "QA"]
+        ]
+        for p in sorted(row.parts, key=lambda r: r.part_number):
+            if (
+                p.pos_x is None
+                or p.pos_y is None
+                or p.stl_path is None
+                or p.mesh_sha256 is None
+            ):
+                raise ReportError(
+                    f"Part {p.serial_id} is missing drag-place fields; "
+                    "refusing to render drag-place row."
+                )
+            table_data.append(
+                [
+                    str(p.part_number),
+                    p.serial_id,
+                    f"{p.pos_x:.2f}",
+                    f"{p.pos_y:.2f}",
+                    Path(p.stl_path).name,
+                    p.mesh_sha256[:12] + "...",
+                    p.qa_status,
+                ]
+            )
     table = Table(table_data, repeatRows=1)
     table.setStyle(
         TableStyle(
@@ -103,14 +137,24 @@ def generate_build_report(
     elements.append(Spacer(1, 8 * mm))
 
     elements.append(Paragraph("Plate Layout", styles["Heading2"]))
-    elements.append(
-        Paragraph(
-            f"Plate: {plate_width_mm:.0f} x {plate_depth_mm:.0f} mm. "
-            f"Each marker is drawn at its recorded XY position.",
-            styles["Normal"],
+    if is_sidecar:
+        elements.append(
+            Paragraph(
+                "This is a sidecar-registered build. Part XY positions "
+                "live inside the external build file and were not "
+                "interpreted by this app, so no plate figure is rendered.",
+                styles["Normal"],
+            )
         )
-    )
-    elements.append(_PlateFigure(row.parts, plate_width_mm, plate_depth_mm))
+    else:
+        elements.append(
+            Paragraph(
+                f"Plate: {plate_width_mm:.0f} x {plate_depth_mm:.0f} mm. "
+                f"Each marker is drawn at its recorded XY position.",
+                styles["Normal"],
+            )
+        )
+        elements.append(_PlateFigure(row.parts, plate_width_mm, plate_depth_mm))
     elements.append(Spacer(1, 8 * mm))
 
     events = session.execute(
@@ -192,6 +236,8 @@ class _PlateFigure(Flowable):
         marker_h = marker_mm * sy
 
         for p in self._parts:
+            if p.pos_x is None or p.pos_y is None:
+                continue
             px = p.pos_x * sx
             py = p.pos_y * sy
             canvas.rect(px, py, marker_w, marker_h, fill=1, stroke=1)

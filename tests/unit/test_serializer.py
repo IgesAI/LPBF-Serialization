@@ -43,7 +43,11 @@ def test_serials_are_row_major_numbered_from_one() -> None:
         "B#0005-4",
     ]
     assert [p.part_number for p in parts] == [1, 2, 3, 4]
-    assert [Path(p.source_stl_path).stem for p in parts] == ["a", "b", "c", "d"]
+    stems: list[str] = []
+    for p in parts:
+        assert p.source_stl_path is not None
+        stems.append(Path(p.source_stl_path).stem)
+    assert stems == ["a", "b", "c", "d"]
 
 
 def test_output_is_pure_function_of_positions() -> None:

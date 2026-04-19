@@ -415,6 +415,7 @@ dependencies = [
     { name = "pyvista" },
     { name = "pyvistaqt" },
     { name = "pywinauto", marker = "sys_platform == 'win32'" },
+    { name = "qrcode", extra = ["pil"] },
     { name = "reportlab" },
     { name = "rtree" },
     { name = "shapely" },
@@ -449,6 +450,7 @@ requires-dist = [
     { name = "pyvista", specifier = ">=0.43,<1.0" },
     { name = "pyvistaqt", specifier = ">=0.11,<1.0" },
     { name = "pywinauto", marker = "sys_platform == 'win32'", specifier = ">=0.6.8,<1.0" },
+    { name = "qrcode", extras = ["pil"], specifier = ">=7.4,<9.0" },
     { name = "reportlab", specifier = ">=4.2,<5.0" },
     { name = "rtree", specifier = ">=1.2,<2.0" },
     { name = "shapely", specifier = ">=2.0,<3.0" },
@@ -1115,6 +1117,23 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/2c/85/cc65e3b64e7473cc86c07f0b5c415d509402c03ef19dadc39c583835eb5f/pywinauto-0.6.9.tar.gz", hash = "sha256:94d710bfa796df245250f952ffa65d97233d9807bcd42e052b71b81af469b6de", size = 434734, upload-time = "2025-01-06T11:30:01.801Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/44/46/f2283648e0c237af451dc50ebc42121abfd198d12391fd9ad4df1c6b97d2/pywinauto-0.6.9-py2.py3-none-any.whl", hash = "sha256:5924b3072864a1d730c5546bbeb17cf4063ba518b618dbc5e43c18276c7c9356", size = 363041, upload-time = "2025-01-06T11:29:55.586Z" },
+]
+
+[[package]]
+name = "qrcode"
+version = "8.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "colorama", marker = "sys_platform == 'win32'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/8f/b2/7fc2931bfae0af02d5f53b174e9cf701adbb35f39d69c2af63d4a39f81a9/qrcode-8.2.tar.gz", hash = "sha256:35c3f2a4172b33136ab9f6b3ef1c00260dd2f66f858f24d88418a015f446506c", size = 43317, upload-time = "2025-05-01T15:44:24.726Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/dd/b8/d2d6d731733f51684bbf76bf34dab3b70a9148e8f2cef2bb544fccec681a/qrcode-8.2-py3-none-any.whl", hash = "sha256:16e64e0716c14960108e85d853062c9e8bba5ca8252c0b4d0231b9df4060ff4f", size = 45986, upload-time = "2025-05-01T15:44:22.781Z" },
+]
+
+[package.optional-dependencies]
+pil = [
+    { name = "pillow" },
 ]
 
 [[package]]

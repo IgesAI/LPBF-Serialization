@@ -50,16 +50,33 @@ class EngravingSpec(BaseModel):
     enabled: bool = True
 
 
+class BuildFileFormat(str, Enum):
+    """Format of a Renishaw build file we were handed."""
+
+    MTT = "mtt"
+    RENAM = "renam"
+    AMX = "amx"
+    UNKNOWN = "unknown"
+
+
 class PartRecord(BaseModel):
-    """A part as known to the build engine before/after DB persistence."""
+    """A part as known to the build engine before/after DB persistence.
+
+    In **drag-place mode** (STL imported by hand) ``position``,
+    ``source_stl_path`` and ``mesh_sha256`` are all populated. In
+    **sidecar mode** (registered from an existing .mtt / .renam without
+    cracking it open) they are all ``None`` and ``part_name`` is the
+    string extracted from the build-file header.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     serial: PartSerial
     part_number: int = Field(ge=1)
-    position: PlatePosition
-    source_stl_path: Path
-    mesh_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    part_name: str | None = None
+    position: PlatePosition | None = None
+    source_stl_path: Path | None = None
+    mesh_sha256: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
     qa_status: QAStatus = QAStatus.PENDING
 
 
@@ -73,6 +90,11 @@ class BuildRecord(BaseModel):
     parts: tuple[PartRecord, ...]
     mtt_path: Path | None = None
     mtt_sha256: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
+    source_build_file_path: Path | None = None
+    source_build_file_sha256: str | None = Field(
+        default=None, pattern=r"^[0-9a-f]{64}$"
+    )
+    source_build_file_format: BuildFileFormat | None = None
     notes: str = ""
 
     @field_validator("parts")

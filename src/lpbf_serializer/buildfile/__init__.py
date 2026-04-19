@@ -22,12 +22,26 @@ from lpbf_serializer.buildfile.inspector import (
     InspectionReport,
     inspect_build_file,
 )
+from lpbf_serializer.buildfile.mtt_reader import (
+    HeaderPartName,
+    MttReaderError,
+    NoPartNamesFoundError,
+    ParsedBuildFile,
+    UnrecognisedEnvelopeError,
+    parse_build_file,
+)
 
 __all__ = [
     "BuildFileInspectionError",
     "EntryKind",
     "ExtractedString",
+    "HeaderPartName",
     "InspectedEntry",
     "InspectionReport",
+    "MttReaderError",
+    "NoPartNamesFoundError",
+    "ParsedBuildFile",
+    "UnrecognisedEnvelopeError",
     "inspect_build_file",
+    "parse_build_file",
 ]

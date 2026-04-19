@@ -109,6 +109,8 @@ def test_save_build_happy_path(
     saved = svc.save_build(_inputs(cube_stl), notes="first run")
 
     assert str(saved.build_code) == "B#0001"
+    assert saved.mtt_path is not None
+    assert saved.mtt_sha256 is not None
     assert saved.mtt_path.exists()
     assert saved.mtt_sha256 == hashlib.sha256(saved.mtt_path.read_bytes()).hexdigest()
     assert [str(p.serial) for p in saved.parts] == ["B#0001-1", "B#0001-2"]

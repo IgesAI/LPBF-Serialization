@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from lpbf_serializer.domain.ids import BuildCode, PartSerial
 from lpbf_serializer.domain.models import (
+    BuildFileFormat,
     BuildRecord,
     EngravingSpec,
     PartRecord,
@@ -13,6 +14,7 @@ from lpbf_serializer.domain.models import (
 
 __all__ = [
     "BuildCode",
+    "BuildFileFormat",
     "BuildRecord",
     "EngravingSpec",
     "PartRecord",

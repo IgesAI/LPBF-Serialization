@@ -21,9 +21,14 @@ from pathlib import Path
 from sqlalchemy.orm import Session
 
 from lpbf_serializer.audit.log import AuditEventType, AuditLogger
+from lpbf_serializer.buildfile.mtt_reader import ParsedBuildFile, parse_build_file
 from lpbf_serializer.db.repositories import BuildRepository
-from lpbf_serializer.domain.ids import BuildCode
-from lpbf_serializer.domain.models import BuildRecord, PartRecord
+from lpbf_serializer.domain.ids import BuildCode, PartSerial
+from lpbf_serializer.domain.models import (
+    BuildRecord,
+    PartRecord,
+    QAStatus,
+)
 from lpbf_serializer.engine.sequencer import BuildSequencer
 from lpbf_serializer.engine.serializer import PlacedPartInput, assign_serials
 from lpbf_serializer.quantam.client import (
@@ -36,9 +41,10 @@ from lpbf_serializer.quantam.client import (
 @dataclass(frozen=True, slots=True)
 class SavedBuild:
     build_code: BuildCode
-    mtt_path: Path
-    mtt_sha256: str
+    mtt_path: Path | None
+    mtt_sha256: str | None
     parts: tuple[PartRecord, ...]
+    source_build_file: ParsedBuildFile | None = None
 
 
 class BuildService:
@@ -91,18 +97,25 @@ class BuildService:
             self._export_dir.mkdir(parents=True, exist_ok=True)
             output_path = self._export_dir / f"{code}.mtt"
 
-            request = ExportRequest(
-                build_code=code,
-                output_mtt_path=output_path,
-                parts=tuple(
+            export_parts: list[ExportRequestPart] = []
+            for p in parts:
+                if p.source_stl_path is None or p.position is None:
+                    raise RuntimeError(
+                        "save_build internal invariant violated: "
+                        "drag-place parts must carry STL path and position"
+                    )
+                export_parts.append(
                     ExportRequestPart(
                         stl_path=p.source_stl_path,
                         pos_x_mm=p.position.x_mm,
                         pos_y_mm=p.position.y_mm,
                         serial=str(p.serial),
                     )
-                    for p in parts
-                ),
+                )
+            request = ExportRequest(
+                build_code=code,
+                output_mtt_path=output_path,
+                parts=tuple(export_parts),
             )
             self._audit.log(
                 AuditEventType.EXPORT_REQUESTED,
@@ -153,4 +166,92 @@ class BuildService:
             mtt_path=result.mtt_path,
             mtt_sha256=result.manifest.sha256,
             parts=parts,
+        )
+
+    def register_build_file(
+        self,
+        build_file_path: Path,
+        *,
+        notes: str = "",
+    ) -> SavedBuild:
+        """Sidecar mode: register an already-prepared build file as-is.
+
+        The file is not modified. Its part names are read from the header
+        (see :mod:`lpbf_serializer.buildfile.mtt_reader`), a build code is
+        allocated, per-part serials are issued in the order the names
+        appear in the file, and everything is persisted transactionally.
+
+        Raises a ``MttReaderError`` (or subclass) if the file's envelope
+        is not recognised. No partial state is written on failure.
+        """
+        parsed = parse_build_file(build_file_path)
+        if parsed.part_count == 0:
+            raise ValueError(
+                f"{build_file_path}: parser found 0 parts; refusing to register"
+            )
+
+        with self._session.begin():
+            code = self._sequencer.allocate_next()
+            self._audit.log(
+                AuditEventType.BUILD_CODE_ALLOCATED,
+                build_code=code,
+                payload={"code": str(code), "mode": "sidecar"},
+            )
+
+            part_records: list[PartRecord] = []
+            for idx, hpn in enumerate(parsed.part_names, start=1):
+                part_records.append(
+                    PartRecord(
+                        serial=PartSerial(build_code=code, index=idx),
+                        part_number=idx,
+                        part_name=hpn.name,
+                        position=None,
+                        source_stl_path=None,
+                        mesh_sha256=None,
+                        qa_status=QAStatus.PENDING,
+                    )
+                )
+            parts = tuple(part_records)
+
+            self._audit.log(
+                AuditEventType.SERIALS_ASSIGNED,
+                build_code=code,
+                payload={
+                    "count": len(parts),
+                    "serials": [str(p.serial) for p in parts],
+                    "names": [p.part_name for p in parts],
+                    "source_build_file_sha256": parsed.file_sha256,
+                    "source_build_file_format": parsed.format.value,
+                },
+            )
+
+            record = BuildRecord(
+                build_code=code,
+                created_at=datetime.now(UTC),
+                parts=parts,
+                mtt_path=None,
+                mtt_sha256=None,
+                source_build_file_path=parsed.path,
+                source_build_file_sha256=parsed.file_sha256,
+                source_build_file_format=parsed.format,
+                notes=notes,
+            )
+            self._build_repo.insert(record)
+
+            self._audit.log(
+                AuditEventType.BUILD_PERSISTED,
+                build_code=code,
+                payload={
+                    "part_count": len(parts),
+                    "mode": "sidecar",
+                    "source_build_file_sha256": parsed.file_sha256,
+                },
+            )
+
+        return SavedBuild(
+            build_code=code,
+            mtt_path=None,
+            mtt_sha256=None,
+            parts=parts,
+            source_build_file=parsed,
         )
