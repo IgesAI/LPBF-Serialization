@@ -49,6 +49,7 @@ dev = [
     "types-psutil>=5.9,<8.0",
     "types-pywin32>=311,<400",
     "pyinstaller>=6.19.0",
+    "pefile>=2024.8.26",
 ]
 
 [tool.ruff]

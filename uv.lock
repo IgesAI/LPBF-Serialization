@@ -427,6 +427,7 @@ dependencies = [
 dev = [
     { name = "hypothesis" },
     { name = "mypy" },
+    { name = "pefile" },
     { name = "pyinstaller" },
     { name = "pytest" },
     { name = "pytest-cov" },
@@ -462,6 +463,7 @@ requires-dist = [
 dev = [
     { name = "hypothesis", specifier = ">=6.100,<7.0" },
     { name = "mypy", specifier = ">=1.10,<2.0" },
+    { name = "pefile", specifier = ">=2024.8.26" },
     { name = "pyinstaller", specifier = ">=6.19.0" },
     { name = "pytest", specifier = ">=8.2,<9.0" },
     { name = "pytest-cov", specifier = ">=5.0,<7.0" },
